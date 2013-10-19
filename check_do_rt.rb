@@ -423,12 +423,12 @@ records.each do |record|
 
       if (twitstring != "") then
         blog_title = /オレ的ゲーム速報＠刃 : /
-        puts twitstring.sub( blog_title, "")
-        #twitresult = access_token.post(
-        #  'http://api.twitter.com/1.1/statuses/update.json',
-        #  'status'=> twitstring.sub( blog_title, "")
-        #)
-        #puts twitresult.body
+        #puts twitstring.sub( blog_title, "")
+        twitresult = access_token.post(
+          'http://api.twitter.com/1.1/statuses/update.json',
+          'status'=> twitstring.sub( blog_title, "")
+        )
+        puts twitresult.body
       end
 
     end
