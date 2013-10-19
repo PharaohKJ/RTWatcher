@@ -5,7 +5,8 @@ help:
 
 ## run 実行
 run:
-
+	ruby get_tweet.rb
+	ruby check_do_rt.rb
 
 ## debug jin115watcherで実行する
 debug:
