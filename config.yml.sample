@@ -1,0 +1,13 @@
+token:
+  consumer_key: COKEY
+  consumer_secret: COSE
+
+user:
+  access_token: AT
+  access_token_secret: ATS
+  user_name: TWITTERACOUNT
+
+test:
+  access_token: AT
+  access_token_secret: ATS
+  user_name: TWITTERACOUNT
