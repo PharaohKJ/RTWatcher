@@ -1,4 +1,4 @@
-cd /home/phkjinc/
-/usr/local/bin/ruby ./get_tweet.rb
-/usr/local/bin/ruby ./check_do_rt.rb
- 
+MYPATH=`dirname $0`
+cd $MYPATH
+#make debug TEST_USER=jin115watcher
+make run
