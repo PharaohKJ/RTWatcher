@@ -7,13 +7,6 @@ Bundler.require
 require 'yaml'
 require 'date'
 
-## Configure twitter API
-TARGET_USER = 'jin115'
-API_BASIC_URL = 'http://api.twitter.com/1.1/statuses/user_timeline'
-API_RESULT_TYPE = 'json'
-API_URL = "#{API_BASIC_URL}/#{TARGET_USER}.#{API_RESULT_TYPE}?count=200"
-API_URL_AFTER = "#{API_BASIC_URL}/#{TARGET_USER}.#{API_RESULT_TYPE}?since_id="
-
 ## Create Initial Data
 dir = File.expand_path(File.dirname($0))
 config = YAML.load_file(dir + '/config.yml')
@@ -26,6 +19,13 @@ if (!ARGV[0].nil?) then
 end
 
 cu = config[userconf] 
+
+## Configure twitter API
+TARGET_USER = cu['target_user']
+API_BASIC_URL = 'http://api.twitter.com/1.1/statuses/user_timeline'
+API_RESULT_TYPE = 'json'
+API_URL = "#{API_BASIC_URL}/#{TARGET_USER}.#{API_RESULT_TYPE}?count=200"
+API_URL_AFTER = "#{API_BASIC_URL}/#{TARGET_USER}.#{API_RESULT_TYPE}?since_id="
 
 TWEET_DB = "#{db_dir}tweetdb_#{userconf}.txt"
 
