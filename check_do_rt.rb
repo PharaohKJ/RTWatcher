@@ -209,9 +209,25 @@ records.each do |record|
     end
     urlstr = '/1/urls/count.json?url=' + targeturl
     Net::HTTP.version_1_2   # おまじない
-    #Net::HTTP.start('urls.api.twitter.com', 80) do |http|
     Net::HTTP.start('cdn.api.twitter.com', 80) do |http|
+
       response = http.get(urlstr)
+
+      #error が帰ってきたら3秒waitを入れて5度tryする
+      5.times do
+        if ( response.code == '200') then
+          break
+        end
+        response = http.get(urlstr)
+        sleep(3)
+      end
+
+      # それでもエラーだったらスキップする
+      if response.code != '200' then
+        puts "cannot call cdn.api.twitter.com! url = #{urlstr} code = #{response.code}"
+        break
+      end
+
       response_str = response.body.chomp
       p response_str
       parsed = JSON.parse(response_str)
