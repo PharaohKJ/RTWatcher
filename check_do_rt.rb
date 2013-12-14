@@ -189,7 +189,9 @@ end
 
 # statusからURLを取り出す
 records.each do |record|
-  sleep(2)
+  sleep(1)
+
+  # 調査対象URL抜き出し
   urlstrs = record.status.scan(/http.+html/)
   # livedoor経由のtwitterポストが短縮URLになってこうしないととれないことがある
   if ( urlstrs.length == 0)
@@ -198,27 +200,32 @@ records.each do |record|
   if ( urlstrs.length == 0)
     urlstrs = record.status.scan(/http:\/\/t.co\/[a-zA-Z0-9]+/)
   end
+
+  # URLが抜き出せたら
   if ( urlstrs.length > 0)
 
-   # puts "url: #{urlstrs}"
+    # puts "url: #{urlstrs}"
 
+    # 短縮URL伸張
     targeturl=expand_url(urlstrs[0])
     expanded = targeturl.scan(/http:\/\/lb.to\/[a-zA-Z0-9]+/)
     if (expanded.length != 0)
       targeturl=expand_url(expanded[0])
     end
+
+    # tweet数取得API準備
     urlstr = '/1/urls/count.json?url=' + targeturl
+
     Net::HTTP.version_1_2   # おまじない
     Net::HTTP.start('cdn.api.twitter.com', 80) do |http|
 
-      response = http.get(urlstr)
-
       #error が帰ってきたら3秒waitを入れて5度tryする
+      response = nil
       5.times do
+        response = http.get(urlstr, {'Connection' => 'Keep-Alive'})
         if ( response.code == '200') then
           break
         end
-        response = http.get(urlstr)
         sleep(3)
       end
 
