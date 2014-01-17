@@ -22,7 +22,7 @@ cu = config[userconf]
 
 ## Configure twitter API
 TARGET_USER = cu['target_user']
-API_BASIC_URL = 'http://api.twitter.com/1.1/statuses/user_timeline'
+API_BASIC_URL = 'https://api.twitter.com/1.1/statuses/user_timeline'
 API_RESULT_TYPE = 'json'
 API_URL = "#{API_BASIC_URL}/#{TARGET_USER}.#{API_RESULT_TYPE}?count=200"
 API_URL_AFTER = "#{API_BASIC_URL}/#{TARGET_USER}.#{API_RESULT_TYPE}?since_id="
@@ -42,7 +42,7 @@ end
 consumer = OAuth::Consumer.new(
   ct['consumer_key'],
   ct['consumer_secret'],
-  :site => 'http://twitter.com'
+  :site => 'https://twitter.com'
                                )
 access_token = OAuth::AccessToken.new(
   consumer,
@@ -132,6 +132,10 @@ end
 
 # puts request
 response = access_token.get(request)
+
+p response
+p response.body
+
 # puts response
 JSON.parse(response.body).reverse_each do |status|
 

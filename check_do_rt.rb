@@ -29,7 +29,7 @@ cu = config[userconf]
 consumer = OAuth::Consumer.new(
   ct['consumer_key'],
   ct['consumer_secret'],
-  :site => 'http://twitter.com'
+  :site => 'https://twitter.com'
                                )
 access_token = OAuth::AccessToken.new(
   consumer,
@@ -448,7 +448,7 @@ records.each do |record|
         blog_title = /オレ的ゲーム速報＠刃 : /
         #puts twitstring.sub( blog_title, "")
         twitresult = access_token.post(
-          'http://api.twitter.com/1.1/statuses/update.json',
+          'https://api.twitter.com/1.1/statuses/update.json',
           'status'=> twitstring.sub( blog_title, "")
         )
         puts twitresult.body
