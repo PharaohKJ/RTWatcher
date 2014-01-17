@@ -133,9 +133,6 @@ end
 # puts request
 response = access_token.get(request)
 
-p response
-p response.body
-
 # puts response
 JSON.parse(response.body).reverse_each do |status|
 
