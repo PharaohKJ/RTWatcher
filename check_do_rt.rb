@@ -189,7 +189,8 @@ end
 
 # statusからURLを取り出す
 records.each do |record|
-  sleep(1)
+  sleep(0.2)
+  # STDERR.puts Time.now
 
   # 調査対象URL抜き出し
   urlstrs = record.status.scan(/http.+html/)
@@ -201,264 +202,274 @@ records.each do |record|
     urlstrs = record.status.scan(/http:\/\/t.co\/[a-zA-Z0-9]+/)
   end
 
-  # URLが抜き出せたら
-  if ( urlstrs.length > 0)
+  # URLが抜き出せなかったら無視
+  if ( urlstrs.length == 0)
+    
+    # 抜き出せなかった
+    STDERR.puts 'url not match!'
+    STDERR.puts record.status
+    next
+  end
 
-    # puts "url: #{urlstrs}"
+  # puts "url: #{urlstrs}"
 
-    # 短縮URL伸張
-    targeturl=expand_url(urlstrs[0])
-    expanded = targeturl.scan(/http:\/\/lb.to\/[a-zA-Z0-9]+/)
-    if (expanded.length != 0)
-      targeturl=expand_url(expanded[0])
-    end
+  # 短縮URL伸張
+  targeturl = expand_url(urlstrs[0])
+  expanded = targeturl.scan(/http:\/\/lb.to\/[a-zA-Z0-9]+/)
+  if (expanded.length != 0)
+    targeturl=expand_url(expanded[0])
+  end
 
-    # tweet数取得API準備
-    urlstr = '/1/urls/count.json?url=' + targeturl
+  # tweet数取得API準備
+  urlstr = '/1/urls/count.json?url=' + targeturl
 
-    Net::HTTP.version_1_2   # おまじない
-    Net::HTTP.start('cdn.api.twitter.com', 80) do |http|
+  Net::HTTP.version_1_2   # おまじない
+  Net::HTTP.start('cdn.api.twitter.com', 80) do |http|
 
-      #error が帰ってきたら3秒waitを入れて5度tryする
-      response = nil
-      5.times do
+    #error が帰ってきたら3秒waitを入れて5度tryする
+    response = nil
+    5.times do
+      begin
         response = http.get(urlstr, {'Connection' => 'Keep-Alive'})
         if ( response.code == '200') then
           break
         end
         sleep(3)
+      rescue
+	STDERR.puts $!
+	STDERR.puts urlstr
       end
+    end
 
-      # それでもエラーだったらスキップする
-      if response.code != '200' then
-        puts "cannot call cdn.api.twitter.com! url = #{urlstr} code = #{response.code}"
-        break
-      end
+    # それでもエラーだったらスキップする
+    if response.code != '200' then
+      STDERR.puts "cannot call cdn.api.twitter.com! url = #{urlstr} code = #{response.code}"
+      break
+    end
 
-      response_str = response.body.chomp
-      p response_str
-      parsed = JSON.parse(response_str)
-      rt_count = parsed["count"].to_i
+    response_str = response.body.chomp
+    p response_str
+    parsed = JSON.parse(response_str)
+    rt_count = parsed["count"].to_i
 
-      if ( rt_hash[record.id] != nil) then
-        rt_hash[record.id].rt_count_new = rt_count
+    if ( rt_hash[record.id] != nil) then
+      rt_hash[record.id].rt_count_new = rt_count
+    else
+      b = type_rtrecord.new
+      b.id = record.id
+      b.rt_count = rt_count
+      b.rt_count_new = rt_count
+      b.rt_status = 0
+      rt_hash[record.id] = b
+    end
+    
+    twitstring = ""
+
+    if (rt_count >= config.kiriban10k) then
+       savedata = false
+      if ( rt_hash[record.id] == nil) then savedata = true
       else
-        b = type_rtrecord.new
-        b.id = record.id
-        b.rt_count = rt_count
-        b.rt_count_new = rt_count
-        b.rt_status = 0
-        rt_hash[record.id] = b
+        if ( rt_hash[record.id].rt_status <= 14) then savedata = true end
       end
-      
-      twitstring = ""
+      if (savedata) then
+        twitstring = "#{config.head_10k} #{record.status} #{config.footer_10k}"
+        rt_hash[record.id].rt_status = 15
+      end
+    elsif (rt_count >= config.kiriban9k) then
+       savedata = false
+      if ( rt_hash[record.id] == nil) then savedata = true
+      else
+        if ( rt_hash[record.id].rt_status <= 13) then savedata = true end
+      end
+      if (savedata) then
+        twitstring = "#{config.head_9k} #{record.status} #{config.footer_9k}"
+        rt_hash[record.id].rt_status = 14
+      end
 
-      if (rt_count >= config.kiriban10k) then
-         savedata = false
-        if ( rt_hash[record.id] == nil) then savedata = true
-        else
-          if ( rt_hash[record.id].rt_status <= 14) then savedata = true end
-        end
-        if (savedata) then
-          twitstring = "#{config.head_10k} #{record.status} #{config.footer_10k}"
-          rt_hash[record.id].rt_status = 15
-        end
-      elsif (rt_count >= config.kiriban9k) then
-         savedata = false
-        if ( rt_hash[record.id] == nil) then savedata = true
-        else
-          if ( rt_hash[record.id].rt_status <= 13) then savedata = true end
-        end
-        if (savedata) then
-          twitstring = "#{config.head_9k} #{record.status} #{config.footer_9k}"
-          rt_hash[record.id].rt_status = 14
-        end
+    elsif (rt_count >= config.kiriban8k) then
+               savedata = false
+      if ( rt_hash[record.id] == nil) then savedata = true
+      else
+        if ( rt_hash[record.id].rt_status <= 12) then savedata = true end
+      end
+      if (savedata) then
+        twitstring = "#{config.head_8k} #{record.status} #{config.footer_8k}"
+        rt_hash[record.id].rt_status = 13
+      end
 
-      elsif (rt_count >= config.kiriban8k) then
-                 savedata = false
-        if ( rt_hash[record.id] == nil) then savedata = true
-        else
-          if ( rt_hash[record.id].rt_status <= 12) then savedata = true end
-        end
-        if (savedata) then
-          twitstring = "#{config.head_8k} #{record.status} #{config.footer_8k}"
-          rt_hash[record.id].rt_status = 13
-        end
+    elsif (rt_count >= config.kiriban7k) then
+               savedata = false
+      if ( rt_hash[record.id] == nil) then savedata = true
+      else
+        if ( rt_hash[record.id].rt_status <= 11) then savedata = true end
+      end
+      if (savedata) then
+        twitstring = "#{config.head_7k} #{record.status} #{config.footer_7k}"
+        rt_hash[record.id].rt_status = 12
+      end
+    elsif (rt_count >= config.kiriban6k) then
+               savedata = false
+      if ( rt_hash[record.id] == nil) then savedata = true
+      else
+        if ( rt_hash[record.id].rt_status <= 10) then savedata = true end
+      end
+      if (savedata) then
+        twitstring = "#{config.head_6k} #{record.status} #{config.footer_6k}"
+        rt_hash[record.id].rt_status = 11
+      end
+    elsif (rt_count >= config.kiriban5k) then
+               savedata = false
+      if ( rt_hash[record.id] == nil) then savedata = true
+      else
+        if ( rt_hash[record.id].rt_status <= 9) then savedata = true end
+      end
+      if (savedata) then
+        twitstring = "#{config.head_5k} #{record.status} #{config.footer_5k}"
+        rt_hash[record.id].rt_status = 10
+      end
+    elsif (rt_count >= config.kiriban4k) then
+               savedata = false
+      if ( rt_hash[record.id] == nil) then savedata = true
+      else
+        if ( rt_hash[record.id].rt_status <= 8) then savedata = true end
+      end
+      if (savedata) then
+        twitstring = "#{config.head_4k} #{record.status} #{config.footer_4k}"
+        rt_hash[record.id].rt_status = 9
+      end
+    elsif (rt_count >= config.kiriban3k) then
+               savedata = false
+      if ( rt_hash[record.id] == nil) then savedata = true
+      else
+        if ( rt_hash[record.id].rt_status <= 7) then savedata = true end
+      end
+      if (savedata) then
+        twitstring = "#{config.head_3k} #{record.status} #{config.footer_3k}"
+        rt_hash[record.id].rt_status = 8
+      end
+    elsif (rt_count >= config.kiriban2k) then
+               savedata = false
+      if ( rt_hash[record.id] == nil) then savedata = true
+      else
+        if ( rt_hash[record.id].rt_status <= 6) then savedata = true end
+      end
+      if (savedata) then
+        twitstring = "#{config.head_2k} #{record.status} #{config.footer_2k}"
+        rt_hash[record.id].rt_status = 7
+      end
 
-      elsif (rt_count >= config.kiriban7k) then
-                 savedata = false
-        if ( rt_hash[record.id] == nil) then savedata = true
-        else
-          if ( rt_hash[record.id].rt_status <= 11) then savedata = true end
-        end
-        if (savedata) then
-          twitstring = "#{config.head_7k} #{record.status} #{config.footer_7k}"
-          rt_hash[record.id].rt_status = 12
-        end
-      elsif (rt_count >= config.kiriban6k) then
-                 savedata = false
-        if ( rt_hash[record.id] == nil) then savedata = true
-        else
-          if ( rt_hash[record.id].rt_status <= 10) then savedata = true end
-        end
-        if (savedata) then
-          twitstring = "#{config.head_6k} #{record.status} #{config.footer_6k}"
-          rt_hash[record.id].rt_status = 11
-        end
-      elsif (rt_count >= config.kiriban5k) then
-                 savedata = false
-        if ( rt_hash[record.id] == nil) then savedata = true
-        else
-          if ( rt_hash[record.id].rt_status <= 9) then savedata = true end
-        end
-        if (savedata) then
-          twitstring = "#{config.head_5k} #{record.status} #{config.footer_5k}"
-          rt_hash[record.id].rt_status = 10
-        end
-      elsif (rt_count >= config.kiriban4k) then
-                 savedata = false
-        if ( rt_hash[record.id] == nil) then savedata = true
-        else
-          if ( rt_hash[record.id].rt_status <= 8) then savedata = true end
-        end
-        if (savedata) then
-          twitstring = "#{config.head_4k} #{record.status} #{config.footer_4k}"
-          rt_hash[record.id].rt_status = 9
-        end
-      elsif (rt_count >= config.kiriban3k) then
-                 savedata = false
-        if ( rt_hash[record.id] == nil) then savedata = true
-        else
-          if ( rt_hash[record.id].rt_status <= 7) then savedata = true end
-        end
-        if (savedata) then
-          twitstring = "#{config.head_3k} #{record.status} #{config.footer_3k}"
-          rt_hash[record.id].rt_status = 8
-        end
-      elsif (rt_count >= config.kiriban2k) then
-                 savedata = false
-        if ( rt_hash[record.id] == nil) then savedata = true
-        else
-          if ( rt_hash[record.id].rt_status <= 6) then savedata = true end
-        end
-        if (savedata) then
-          twitstring = "#{config.head_2k} #{record.status} #{config.footer_2k}"
-          rt_hash[record.id].rt_status = 7
-        end
+    elsif (rt_count >= config.kiriban6) then
 
-      elsif (rt_count >= config.kiriban6) then
+       savedata = false
+      if ( rt_hash[record.id] == nil) then savedata = true
+      else
+        if ( rt_hash[record.id].rt_status <= 5) then savedata = true end
+      end
+      if (savedata) then
+        twitstring = "#{config.head_6} #{record.status} #{config.footer_6}"
+        rt_hash[record.id].rt_status = 6
+      end
 
-         savedata = false
-        if ( rt_hash[record.id] == nil) then savedata = true
-        else
-          if ( rt_hash[record.id].rt_status <= 5) then savedata = true end
-        end
-        if (savedata) then
-          twitstring = "#{config.head_6} #{record.status} #{config.footer_6}"
-          rt_hash[record.id].rt_status = 6
-        end
+    elsif (rt_count >= config.kiriban5) then
 
-      elsif (rt_count >= config.kiriban5) then
+      if ( rt_hash[record.id] == nil) then
+        twitstring = "#{config.head_5} #{record.status} #{config.footer_5}"
 
-        if ( rt_hash[record.id] == nil) then
+        rt_hash[record.id].rt_status = 5
+
+      else
+
+        if ( rt_hash[record.id].rt_status <= 4) then
           twitstring = "#{config.head_5} #{record.status} #{config.footer_5}"
-
           rt_hash[record.id].rt_status = 5
 
-        else
-
-          if ( rt_hash[record.id].rt_status <= 4) then
-            twitstring = "#{config.head_5} #{record.status} #{config.footer_5}"
-            rt_hash[record.id].rt_status = 5
-
-          end
-
         end
 
-      elsif (rt_count >= config.kiriban4) then
+      end
 
-        if ( rt_hash[record.id] == nil) then
+    elsif (rt_count >= config.kiriban4) then
+
+      if ( rt_hash[record.id] == nil) then
+        twitstring = "#{config.head_4} #{record.status} #{config.footer_4}"
+
+        rt_hash[record.id].rt_status = 4
+
+      else
+
+        if ( rt_hash[record.id].rt_status <= 3) then
           twitstring = "#{config.head_4} #{record.status} #{config.footer_4}"
-
           rt_hash[record.id].rt_status = 4
 
-        else
-
-          if ( rt_hash[record.id].rt_status <= 3) then
-            twitstring = "#{config.head_4} #{record.status} #{config.footer_4}"
-            rt_hash[record.id].rt_status = 4
-
-          end
-
         end
 
-      elsif (rt_count >= config.kiriban3) then
+      end
 
-        if ( rt_hash[record.id] == nil) then
+    elsif (rt_count >= config.kiriban3) then
+
+      if ( rt_hash[record.id] == nil) then
+        twitstring = "#{config.head_3} #{record.status} #{config.footer_3}"
+
+        rt_hash[record.id].rt_status = 3
+
+      else
+
+        if ( rt_hash[record.id].rt_status <= 2) then
           twitstring = "#{config.head_3} #{record.status} #{config.footer_3}"
-
           rt_hash[record.id].rt_status = 3
 
-        else
-
-          if ( rt_hash[record.id].rt_status <= 2) then
-            twitstring = "#{config.head_3} #{record.status} #{config.footer_3}"
-            rt_hash[record.id].rt_status = 3
-
-          end
-
         end
 
-      elsif (rt_count >= config.kiriban2) then
+      end
 
-        if ( rt_hash[record.id] == nil) then
+    elsif (rt_count >= config.kiriban2) then
+
+      if ( rt_hash[record.id] == nil) then
+        twitstring = "#{config.head_2} #{record.status} #{config.footer_2}"
+        rt_hash[record.id].rt_status = 2
+
+      else
+
+        if ( rt_hash[record.id].rt_status <= 1) then
           twitstring = "#{config.head_2} #{record.status} #{config.footer_2}"
           rt_hash[record.id].rt_status = 2
 
-        else
-
-          if ( rt_hash[record.id].rt_status <= 1) then
-            twitstring = "#{config.head_2} #{record.status} #{config.footer_2}"
-            rt_hash[record.id].rt_status = 2
-
-          end
-
         end
 
-      elsif (rt_count >=config.kiriban1) then
+      end
 
-        if ( rt_hash[record.id] == nil) then
-          #twitstring = "#{config.head_1} #{record.status} #{config.footer_1}"
-          #rt_hash[record.id].rt_status = 1
+    elsif (rt_count >=config.kiriban1) then
 
-        else
+      if ( rt_hash[record.id] == nil) then
+        #twitstring = "#{config.head_1} #{record.status} #{config.footer_1}"
+        #rt_hash[record.id].rt_status = 1
 
-          if ( rt_hash[record.id].rt_status <= 0) then
-          #  twitstring = "#{config.head_1} #{record.status} #{config.footer_1}"
-          #  rt_hash[record.id].rt_status = 1
+      else
 
-          end
+        if ( rt_hash[record.id].rt_status <= 0) then
+        #  twitstring = "#{config.head_1} #{record.status} #{config.footer_1}"
+        #  rt_hash[record.id].rt_status = 1
 
         end
 
       end
 
+    end
 
-      if (twitstring != "") then
-        blog_title = /オレ的ゲーム速報＠刃 : /
-        #puts twitstring.sub( blog_title, "")
-        twitresult = access_token.post(
-          'https://api.twitter.com/1.1/statuses/update.json',
-          'status'=> twitstring.sub( blog_title, "")
-        )
-        puts twitresult.body
-      end
 
+    if (twitstring != "") then
+      blog_title = /オレ的ゲーム速報＠刃 : /
+      #puts twitstring.sub( blog_title, "")
+      twitresult = access_token.post(
+        'https://api.twitter.com/1.1/statuses/update.json',
+        'status'=> twitstring.sub( blog_title, "")
+      )
+      puts twitresult.body
     end
 
   end
 
 end
+
 
 db = open(RT_DB, "w")
 db.puts "1.0"
