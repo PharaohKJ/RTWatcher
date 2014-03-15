@@ -5,10 +5,13 @@ help:
 
 ## run 実行
 run:
-	ruby get_tweet.rb
-	ruby check_do_rt.rb
+	bundle exec ruby get_tweet.rb
+	bundle exec ruby check_do_rt.rb
 
 ## debug TEST_USERで実行する
 debug:
-	ruby get_tweet.rb $(TEST_USER)
-	ruby check_do_rt.rb $(TEST_USER)
+	bundle exec ruby get_tweet.rb $(TEST_USER)
+#	bundle exec ruby check_do_rt.rb $(TEST_USER)
+
+bi:
+	bundle install --path vendor/bundler

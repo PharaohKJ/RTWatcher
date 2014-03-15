@@ -1,8 +1,10 @@
 #! ruby -Ku
 # -*- coding: utf-8 -*-
 
+require 'rubygems'
 require 'bundler'
 Bundler.require
+require 'active_record'
 
 require 'yaml'
 require 'date'
@@ -150,13 +152,49 @@ JSON.parse(response.body).reverse_each do |status|
   end
 end
 
+ActiveRecord::VERSION::STRING
+
+ActiveRecord::Base.establish_connection(
+  :adapter  => 'sqlite3',
+  :database => ":memory:"
+)
+
+class InitialSchema < ActiveRecord::Migration
+  def self.up
+    create_table :tweet_records do |t|
+      t.string :tweet_id, :null => false
+      t.text :status, :null => false
+      t.date :time, :null => false
+      t.timestamp
+    end
+  end
+
+  def self.down
+    drop_table :users
+  end
+end
+
+InitialSchema.migrate(:up)
+
+
+class TweetRecord < ActiveRecord::Base
+end
+
+
 status_array.each do |status|
   record = type_record.new
   record.id = status['id']
   record.date = status['created_at']
   record.status = status['text']
   records.push( record)
+  TweetRecord.create(
+    :tweet_id => record.id,
+    :time => record.date,
+    :status => record.status
+  )
 end
+
+TweetRecord.find(:all).each{|i| p i}
 
 #データからn_dayより古いものを消去
 newrecords = Array.new
