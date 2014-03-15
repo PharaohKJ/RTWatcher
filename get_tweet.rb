@@ -136,14 +136,18 @@ response = access_token.get(request)
 # puts response
 JSON.parse(response.body).reverse_each do |status|
 
-  # jin115.comからの投稿のみを得る
-  p status
-  puts status['source']
-  if status['source'].scan(/livedoor Blog/).length > 0 then
-    puts "#{status['id']} :: #{status['created_at']} :: #{status['text']} :: #{status['source']}"
-    status_array.push( status)
+  begin
+    # livedoor Blogからの投稿のみを得る
+    p status
+    if status['source'].scan(/livedoor Blog/).length > 0 then
+      puts "#{status['id']} :: #{status['created_at']} :: #{status['text']} :: #{status['source']}"
+      status_array.push( status)
+    end
+  rescue
+    STDERR.puts 'response parse error!'
+    STDERR.puts $!
+    STDERR.puts status
   end
-
 end
 
 status_array.each do |status|

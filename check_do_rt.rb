@@ -221,10 +221,10 @@ records.each do |record|
   end
 
   # tweet数取得API準備
-  urlstr = '/1/urls/count.json?url=' + targeturl
+  urlstr = '/1/urls/count.json?url=' + URI.encode(targeturl)
 
   Net::HTTP.version_1_2   # おまじない
-  Net::HTTP.start('cdn.api.twitter.com', 80) do |http|
+  Net::HTTP.start('cdn.api.twitter.com', 443, :use_ssl=>true) do |http|
 
     #error が帰ってきたら3秒waitを入れて5度tryする
     response = nil
@@ -233,6 +233,8 @@ records.each do |record|
         response = http.get(urlstr, {'Connection' => 'Keep-Alive'})
         if ( response.code == '200') then
           break
+        else
+	  STDERR.puts response
         end
         sleep(3)
       rescue
