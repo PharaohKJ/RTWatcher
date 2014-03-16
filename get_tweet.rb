@@ -8,6 +8,7 @@ require 'active_record'
 
 require './db_init.rb'
 require './config.rb'
+require './twitter_api.rb'
 
 require 'yaml'
 require 'date'
@@ -24,53 +25,40 @@ userconf = 'user'
 if (!ARGV[0].nil?) then
   userconf = ARGV[0]
 end
-
 cu = config[userconf] 
 
-## Configure twitter API
-TARGET_USER = cu['target_user']
-API_BASIC_URL = 'https://api.twitter.com/1.1/statuses/user_timeline'
-API_RESULT_TYPE = 'json'
-API_URL = "#{API_BASIC_URL}/#{TARGET_USER}.#{API_RESULT_TYPE}?count=200"
-API_URL_AFTER = "#{API_BASIC_URL}/#{TARGET_USER}.#{API_RESULT_TYPE}?since_id="
-
+## 
 TWEET_DB = "#{db_dir}tweetdb_#{userconf}.txt"
 
 
 ## Read Twitter DB
-tdbf = TweetDBFile.new
-tdbf.init( TWEET_DB )
-p tdbf
+tdb = TweetDBFile.new
+tdb.init( TWEET_DB )
+p tdb
 
 ## Read Config
-config = RTWacherConfig.load('rtconf.txt')
+config = RTWatcherConfig.load('rtconf.txt')
 p config
 
-exit
-
 ## Initalize Twitter API with OAuth
-consumer = OAuth::Consumer.new(
-  ct['consumer_key'],
-  ct['consumer_secret'],
-  :site => 'https://twitter.com'
-                               )
-access_token = OAuth::AccessToken.new(
-  consumer,
-  cu['access_token'],
-  cu['access_token_secret']
-)
+twitter_api = RTWatcherTwitterAPI.new(
+                                      ct['consumer_key'],
+                                      ct['consumer_secret'],
+                                      cu['access_token'],
+                                      cu['access_token_secret'],
+                                      cu['target_user']
+                                      )
 
-
-status_array = Array.new
-request = API_URL
-if records.length != 0 then
-  request = API_URL_AFTER + records.last.id
+last_id = nil
+if tdb.length != 0 then
+  last_id = tdb.last.tweet_id
 end
 
-# puts request
-response = access_token.get(request)
+## Call twitter API
+response = twitter_api.request( last_id)
 
-# puts response
+## puts response
+status_array = Array.new
 JSON.parse(response.body).reverse_each do |status|
 
   begin

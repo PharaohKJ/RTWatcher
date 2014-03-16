@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-class RTWacherConfig
+class RTWatcherConfig
 
   HEADER = 'RTConfig v1'
 
