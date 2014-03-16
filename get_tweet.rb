@@ -32,7 +32,7 @@ TWEET_DB = "#{db_dir}tweetdb_#{userconf}.txt"
 
 
 ## Read Twitter DB
-tdb = TweetDBFile.new
+tdb = TweetDBAccessor::get
 tdb.init( TWEET_DB )
 p tdb
 
@@ -78,42 +78,18 @@ end
 
 
 status_array.each do |status|
-  record = type_record.new
-  record.id = status['id']
-  record.date = status['created_at']
-  record.status = status['text']
-  records.push( record)
-  TweetRecord.create(
-    :tweet_id => record.id,
-    :time => record.date,
-    :status => record.status
-  )
+  tdb.append( status['id'], status['created_at'], status['text'])
+            
+#  TweetRecord.create(
+#    :tweet_id => record.id,
+#    :time => record.date,
+#    :status => record.status
+#  )
 end
 
-TweetRecord.find(:all).each{|i| p i}
+#TweetRecord.find(:all).each{|i| p i}
 
 #データからn_dayより古いものを消去
-newrecords = Array.new
-records.each do |record|
-  parsedstr = Date.parse(record.date)
-  date = parsedstr
-  date += Rational(9, 24)
-  date += config.n_day
-  today = DateTime.now
-  if ( today < date ) then
-    newrecords.push( record)
-  end
-end
+tdb.clean_old( config.n_day )
 
-db = open(TWEET_DB, "w")
-db.puts "1.0"
-db.puts newrecords.size
-newrecords.each do |record|
-    #dbに書き込む
-    db.puts(record.id)
-    db.puts(record.date)
-    db.puts(record.status)
-
-end
-
-db.close
+tdb.save(TWEET_DB)

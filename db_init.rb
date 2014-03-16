@@ -1,13 +1,13 @@
 #! ruby -Ku
 # -*- coding: utf-8 -*-
 
-class TweetDB
+require 'date'
 
-  def initialize( type )
-    case type
-    when :file then
-    when :sqlite then
-    end
+class TweetDBAccessor
+
+  def self.get
+    # default
+    return TweetDBFile.new
   end
 
 end
@@ -66,8 +66,8 @@ class TweetDBFile < TweetDB
   end
 
   # fileに保存
-  def save
-    db = open(TWEET_DB, "w")
+  def save(path)
+    db = open(path, "w")
     db.puts "1.0"
     db.puts @records.size
     @records.each do |record|
@@ -76,6 +76,7 @@ class TweetDBFile < TweetDB
       db.puts(record.time)
       db.puts(record.status)
     end
+    db.close
   end
 
   def last
@@ -84,6 +85,22 @@ class TweetDBFile < TweetDB
 
   def length
     return @records.size
+  end
+
+  def clean_old( n_day )
+    #データからn_dayより古いものを消去
+    newrecords = Array.new
+    @records.each do |record|
+      parsedstr = Date.parse(record.time)
+      date = parsedstr
+      date += Rational(9, 24)
+      date += n_day
+      today = DateTime.now
+      if ( today < date ) then
+        newrecords.push( record)
+      end
+    end
+    @records = newrecords
   end
 
 end
