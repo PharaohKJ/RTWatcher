@@ -44,15 +44,24 @@ RT_DB = "#{db_dir}rtdb_#{userconf}.txt"
 
 def expand_url(url)
   uri = url.kind_of?(URI) ? url : URI.parse(url)
-  Net::HTTP.start(uri.host, uri.port) { |io|
-    r = io.head(uri.path)
-    r['Location'] || uri.to_s
-  }
+  out = ''
+  begin
+    Net::HTTP.start(uri.host, uri.port) do |io|
+      r = io.head(uri.path)
+      out = r['Location'] || uri.to_s
+    end
+  rescue => ex
+    puts ex.to_s
+  rescue Timeout::Error => ex
+    retry
+  end
+  out
 end
 
 # DBオープン
 db_version = "1.0"
 records = Array.new
+
 type_record = Struct.new("DBRecord", :id, :date, :status)
 begin
   db = open(TWEET_DB, "r")
@@ -228,13 +237,14 @@ records.each do |record|
 
     #error が帰ってきたら3秒waitを入れて5度tryする
     response = nil
-    5.times do
+    5.times do |t|
       begin
         response = http.get(urlstr, {'Connection' => 'Keep-Alive'})
         if ( response.code == '200') then
           break
         else
-	  STDERR.puts response
+          STDOUT.puts t
+	  STDOUT.puts response
         end
         sleep(3)
       rescue
