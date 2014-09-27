@@ -44,15 +44,24 @@ RT_DB = "#{db_dir}rtdb_#{userconf}.txt"
 
 def expand_url(url)
   uri = url.kind_of?(URI) ? url : URI.parse(url)
-  Net::HTTP.start(uri.host, uri.port) { |io|
-    r = io.head(uri.path)
-    r['Location'] || uri.to_s
-  }
+  out = ''
+  begin
+    Net::HTTP.start(uri.host, uri.port) do |io|
+      r = io.head(uri.path)
+      out = r['Location'] || uri.to_s
+    end
+  rescue => ex
+    puts ex.to_s
+  rescue Timeout::Error => ex
+    retry
+  end
+  out
 end
 
 # DBオープン
 db_version = "1.0"
 records = Array.new
+
 type_record = Struct.new("DBRecord", :id, :date, :status)
 begin
   db = open(TWEET_DB, "r")
