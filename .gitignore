@@ -1,1 +1,8 @@
 config.yml
+vendor
+db/*.db
+*#
+.#*
+.bundle
+.config
+*.gem
