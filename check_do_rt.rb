@@ -237,13 +237,14 @@ records.each do |record|
 
     #error が帰ってきたら3秒waitを入れて5度tryする
     response = nil
-    5.times do
+    5.times do |t|
       begin
         response = http.get(urlstr, {'Connection' => 'Keep-Alive'})
         if ( response.code == '200') then
           break
         else
-	  STDERR.puts response
+          STDOUT.puts t
+	  STDOUT.puts response
         end
         sleep(3)
       rescue
