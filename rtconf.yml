@@ -1,0 +1,63 @@
+version: 'RTConfig v1'
+day: 5
+kiriban:
+#  - count: 50
+#    head: '50RT :'
+#    foot: ''
+#    status: 1
+  - count: 100
+    head: '100RT :'
+    foot: ''
+    status: 2
+  - count: 200
+    head: '200RT :'
+    foot: ''
+    status: 3
+  - count: 400
+    head: '400RT :'
+    foot: ''
+    status: 4
+  - count: 800
+    head: '800RT :'
+    foot: ''
+    status: 5
+  - count: 1000
+    head: '1000RT :'
+    foot: ''
+    status: 6
+  - count: 2000
+    head: '2000RT :'
+    foot: ''
+    status: 7
+  - count: 3000
+    head: '3000RT :'
+    foot: ''
+    status: 8
+  - count: 4000
+    head: '4000RT :'
+    foot: ''
+    status: 9
+  - count: 5000
+    head: '5000RT :'
+    foot: ''
+    status: 10
+  - count: 6000
+    head: '6000RT :'
+    foot: ''
+    status: 11
+  - count: 7000
+    head: '7000RT :'
+    foot: ''
+    status: 12
+  - count: 8000
+    head: '8000RT :'
+    foot: ''
+    status: 13
+  - count: 9000
+    head: '9000RT :'
+    foot: ''
+    status: 14
+  - count: 10000
+    head: '10000RT :'
+    foot: ''
+    status: 15
