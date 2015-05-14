@@ -6,8 +6,8 @@ Bundler.require
 
 require_relative 'rtconfig.rb'
 require_relative 'userconfig.rb'
+require_relative 'tweetdb.rb'
 
-require 'yaml'
 require 'date'
 
 ## Create Initial Data
@@ -31,7 +31,7 @@ consumer = OAuth::Consumer.new(
   ct['consumer_key'],
   ct['consumer_secret'],
   site: 'https://twitter.com'
-                               )
+)
 access_token = OAuth::AccessToken.new(
   consumer,
   cu['access_token'],
@@ -39,47 +39,19 @@ access_token = OAuth::AccessToken.new(
 )
 
 # DBオープン
-db_version = "1.0"
-records = []
-type_record = Struct.new("DBRecord", :id, :date, :status)
-begin
-  db = open(TWEET_DB, "r")
-  begin
-    version = db.gets.chomp
-    if version == db_version
-      num_of_record = db.gets.chomp
-      num_of_record.to_i.times do
-        record = type_record.new
-        record.id = db.gets.chomp
-        record.date = db.gets.chomp
-        record.status = db.gets.chomp
-        records.push(record)
-      end
-    else
-      #version not match!
-    end
-  rescue => result
-    puts result
-  ensure
-    db.close
-  end
-rescue
-  puts "DBリードエラー"
-end
+tdb = TweetDb.new(TWEET_DB)
 
 #configオープン
 rtconfig = RtConfig.config(dir)
 
 status_array = []
 request = API_URL
-if records.length != 0
-  request = API_URL_AFTER + records.last.id
+if tdb.records.length != 0
+  request = API_URL_AFTER + tdb.records.last[:id]
 end
 
 # puts request
 response = access_token.get(request)
-
-p config['basic']['source']
 
 # puts response
 JSON.parse(response.body).reverse_each do |status|
@@ -97,34 +69,14 @@ JSON.parse(response.body).reverse_each do |status|
 end
 
 status_array.each do |status|
-  record = type_record.new
-  record.id = status['id']
-  record.date = status['created_at']
-  record.status = status['text']
-  records.push(record)
+  tdb.append(
+    id: status['id'],
+    date: status['created_at'],
+    status: status['text']
+  )
 end
 
 #データからn_dayより古いものを消去
-newrecords = []
-records.each do |record|
-  parsedstr = Date.parse(record.date)
-  date = parsedstr
-  date += Rational(9, 24)
-  date += rtconfig['day'].to_i
-  today = DateTime.now
-  if today < date
-    newrecords.push(record)
-  end
-end
+tdb.clean_old(rtconfig['day'].to_i)
 
-db = open(TWEET_DB, "w")
-db.puts "1.0"
-db.puts newrecords.size
-newrecords.each do |record|
-  #dbに書き込む
-  db.puts(record.id)
-  db.puts(record.date)
-  db.puts(record.status)
-end
-
-db.close
+tdb.save(TWEET_DB)
