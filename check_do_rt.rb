@@ -4,6 +4,9 @@
 require 'bundler'
 Bundler.require
 
+require_relative 'rtconfig.rb'
+require_relative 'userconfig.rb'
+
 require 'yaml'
 
 require 'date'
@@ -13,12 +16,10 @@ require 'net/http'
 
 ## Create Initial Data
 dir = File.expand_path(File.dirname($0))
-config = YAML.load_file(dir + '/config.yml')
+config, cu, userconf = UserConfig.config(dir, ARGV[0])
+
 db_dir = dir + '/db/'
 ct = config['token']
-
-userconf =  ARGV[0] || 'user'
-cu = config[userconf]
 
 # 下準備
 consumer = OAuth::Consumer.new(
@@ -119,16 +120,7 @@ rescue
 end
 
 #configオープン
-begin
-  config = YAML.load_file('rtconf.yml')
-  unless config['version'] == 'RTConfig v1'
-    raise
-  end
-rescue
-  puts $!
-  puts "コンフィグロードエラー"
-  exit
-end
+rtconfig = RtConfig.config(dir)
 
 # statusからURLを取り出す
 records.each do |record|
@@ -210,7 +202,7 @@ records.each do |record|
 
     twitstring = nil
 
-    kiriban = config['kiriban'].sort do |v1, v2|
+    kiriban = rtconfig['kiriban'].sort do |v1, v2|
       v2['status'] <=> v1['status']
     end
 
@@ -225,7 +217,7 @@ records.each do |record|
     end
 
     unless twitstring.nil?
-      blog_title = /#{config['title']}/
+      blog_title = /#{config['basic']['title']}/
       #puts twitstring.sub( blog_title, "")
       twitresult = access_token.post(
         'https://api.twitter.com/1.1/statuses/update.json',
