@@ -65,10 +65,10 @@ rtconfig = RtConfig.config(dir)
 # statusからURLを取り出す
 tdb.records.each do |record|
   sleep(0.2)
-  # STDERR.puts Time.now
 
   # 調査対象URL抜き出し
   urlstrs = record[:status].scan(/http.+html/)
+
   # livedoor経由のtwitterポストが短縮URLになってこうしないととれないことがある
   if urlstrs.length == 0
     urlstrs = record[:status].scan(%r{http://lb.to/[a-zA-Z0-9]+})
@@ -84,8 +84,6 @@ tdb.records.each do |record|
     STDERR.puts record[:status]
     next
   end
-
-  # puts "url: #{urlstrs}"
 
   # 短縮URL伸張
   targeturl = expand_url(urlstrs[0])
@@ -108,13 +106,12 @@ tdb.records.each do |record|
         if response.code == '200'
           break
         else
-          STDOUT.puts t
+          STDOUT.puts "#{urlstr} failed.(code = #{response.code}) #{t} try."
           STDOUT.puts response
         end
         sleep(3)
       rescue
-        STDERR.puts $!
-        STDERR.puts urlstr
+        STDERR.puts "#{urlstr} failed. throwed '#{$!}'"
       end
     end
 
@@ -129,15 +126,19 @@ tdb.records.each do |record|
     parsed = JSON.parse(response_str)
     rt_count = parsed["count"].to_i
 
-    unless rdb.rt[record[:id]].nil?
-      rdb.rt[record[:id]][:rt_count_new] = rt_count
-    else
+    if rdb.rt[record[:id]].nil?
+      puts "new record id:#{record[:id]} count: #{rt_count} status: 0"
       rdb.rt[record[:id]] = {
         id:           record[:id],
         rt_count:     rt_count,
         rt_count_new: rt_count,
         rt_status:    0
       }
+    else
+      print "update record id:#{record[:id]} "
+      print "count: #{rt_count}(#{record[:id][:rt_count]}) "
+      puts "status: #{record[:id][:rt_status]}"
+      rdb.rt[record[:id]][:rt_count_new] = rt_count
     end
 
     twitstring = nil
@@ -158,7 +159,6 @@ tdb.records.each do |record|
 
     unless twitstring.nil?
       blog_title = /#{config['basic']['title']}/
-      #puts twitstring.sub( blog_title, "")
       twitresult = access_token.post(
         'https://api.twitter.com/1.1/statuses/update.json',
         status: twitstring.sub(blog_title, '')
