@@ -13,8 +13,9 @@ class RetweetDb
         if version == db_version
           num_of_record = db.gets.chomp
           num_of_record.to_i.times do
-            @rt[record.id] = {
-              id:           db.gets.chomp,
+            id = db.gets.chomp
+            @rt[id] = {
+              id:           id,
               rt_count:     db.gets.chomp.to_i,
               rt_count_new: 0,
               rt_status:    db.gets.chomp.to_i
