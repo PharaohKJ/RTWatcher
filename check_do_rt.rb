@@ -122,7 +122,7 @@ tdb.records.each do |record|
     end
 
     response_str = response.body.chomp
-    p response_str
+    puts "#{urlstr} count is #{response_str}."
     parsed = JSON.parse(response_str)
     rt_count = parsed["count"].to_i
 
@@ -136,8 +136,8 @@ tdb.records.each do |record|
       }
     else
       print "update record id:#{record[:id]} "
-      print "count: #{rt_count}(#{record[:id][:rt_count]}) "
-      puts "status: #{record[:id][:rt_status]}"
+      print "count: #{rt_count}(#{rdb.rt[record[:id]][:rt_count]}) "
+      puts "status: #{rdb.rt[record[:id]][:rt_status]}"
       rdb.rt[record[:id]][:rt_count_new] = rt_count
     end
 
