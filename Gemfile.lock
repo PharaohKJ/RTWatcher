@@ -1,6 +1,7 @@
 GEM
   remote: https://rubygems.org/
   specs:
+    htmlentities (4.3.3)
     json (1.8.1)
     oauth (0.4.7)
     rake (10.1.0)
@@ -9,6 +10,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  htmlentities
   json
   oauth
   rake

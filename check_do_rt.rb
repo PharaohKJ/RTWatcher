@@ -4,6 +4,7 @@
 require 'bundler'
 Bundler.require
 
+
 require_relative 'rtconfig.rb'
 require_relative 'userconfig.rb'
 require_relative 'tweetdb.rb'
@@ -13,6 +14,7 @@ require 'date'
 require 'rexml/document'
 require 'uri'
 require 'net/http'
+require 'htmlentities'
 
 ## Create Initial Data
 dir = File.expand_path(File.dirname($0))
@@ -53,6 +55,32 @@ def expand_url(url)
   out
 end
 
+def get_response(http, urlstr)
+  #error が帰ってきたら3秒waitを入れて5度tryする
+  response = nil
+  5.times do |t|
+    begin
+      response = http.get(urlstr, 'Connection' => 'Keep-Alive')
+      if response.code == '200'
+        break
+      else
+        STDOUT.puts "#{urlstr} failed.(code = #{response.code}) #{t} try."
+        STDOUT.puts response
+      end
+      sleep(3)
+    rescue
+      STDERR.puts "#{urlstr} failed. throwed '#{$!}'"
+    end
+  end
+  response
+end
+
+def response_to_count(response)
+  response_str = response.body.chomp
+  parsed = JSON.parse(response_str)
+  parsed["count"].to_i
+end
+
 # DBオープン
 tdb = TweetDb.new(TWEET_DB)
 
@@ -65,10 +93,10 @@ rtconfig = RtConfig.config(dir)
 # statusからURLを取り出す
 tdb.records.each do |record|
   sleep(0.2)
-  # STDERR.puts Time.now
 
   # 調査対象URL抜き出し
   urlstrs = record[:status].scan(/http.+html/)
+
   # livedoor経由のtwitterポストが短縮URLになってこうしないととれないことがある
   if urlstrs.length == 0
     urlstrs = record[:status].scan(%r{http://lb.to/[a-zA-Z0-9]+})
@@ -85,8 +113,6 @@ tdb.records.each do |record|
     next
   end
 
-  # puts "url: #{urlstrs}"
-
   # 短縮URL伸張
   targeturl = expand_url(urlstrs[0])
   expanded = targeturl.scan(%r{http://lb.to/[a-zA-Z0-9]+})
@@ -97,74 +123,69 @@ tdb.records.each do |record|
   # tweet数取得API準備
   urlstr = '/1/urls/count.json?url=' + URI.encode(targeturl)
 
-  Net::HTTP.version_1_2   # おまじない
-  Net::HTTP.start('cdn.api.twitter.com', 443, use_ssl: true) do |http|
+  response = nil
 
-    #error が帰ってきたら3秒waitを入れて5度tryする
-    response = nil
-    5.times do |t|
-      begin
-        response = http.get(urlstr, 'Connection' => 'Keep-Alive')
-        if response.code == '200'
-          break
-        else
-          STDOUT.puts t
-          STDOUT.puts response
-        end
-        sleep(3)
-      rescue
-        STDERR.puts $!
-        STDERR.puts urlstr
-      end
+  # 5度retryする
+  retry_count = 5
+  begin
+    Net::HTTP.version_1_2   # おまじない
+    Net::HTTP.start('cdn.api.twitter.com', 443, use_ssl: true) do |http|
+      response = get_response(http, urlstr)
     end
+  rescue => evar
+    p evar
+    retry_count -= 1
+    retry if retry_count > 0
+  end
 
-    # それでもエラーだったらスキップする
-    if response.code != '200'
-      STDERR.puts "cannot call cdn.api.twitter.com! url = #{urlstr} code = #{response.code}"
+  next if response.nil?
+
+  # それでもエラーだったらスキップする
+  if response.code != '200'
+    STDERR.puts "cannot call cdn.api.twitter.com! url = #{urlstr} code = #{response.code}"
+    next
+  end
+
+  rt_count = response_to_count(response)
+
+  if rdb.rt[record[:id]].nil?
+    puts "new record id:#{record[:id]} count: #{rt_count} status: 0"
+    rdb.rt[record[:id]] = {
+      id:           record[:id],
+      rt_count:     rt_count,
+      rt_count_new: rt_count,
+      rt_status:    0
+    }
+  else
+    print "update record id:#{record[:id]} "
+    print "count: #{rt_count}(#{rdb.rt[record[:id]][:rt_count]}) "
+    puts "status: #{rdb.rt[record[:id]][:rt_status]}"
+    rdb.rt[record[:id]][:rt_count_new] = rt_count
+  end
+
+  twitstring = nil
+
+  kiriban = rtconfig['kiriban'].sort do |v1, v2|
+    v2['status'] <=> v1['status']
+  end
+
+  kiriban.each do |k|
+    if rt_count >= k['count']
+      if rdb.rt[record[:id]].nil? || rdb.rt[record[:id]][:rt_status] <= k['status'] - 1
+        twitstring = "#{k['head']} #{HTMLEntities.new.decode(record[:status])} #{k['foot']}"
+        rdb.rt[record[:id]][:rt_status] = k['status']
+      end
       break
     end
+  end
 
-    response_str = response.body.chomp
-    p response_str
-    parsed = JSON.parse(response_str)
-    rt_count = parsed["count"].to_i
-
-    unless rdb.rt[record[:id]].nil?
-      rdb.rt[record[:id]][:rt_count_new] = rt_count
-    else
-      rdb.rt[record[:id]] = {
-        id:           record[:id],
-        rt_count:     rt_count,
-        rt_count_new: rt_count,
-        rt_status:    0
-      }
-    end
-
-    twitstring = nil
-
-    kiriban = rtconfig['kiriban'].sort do |v1, v2|
-      v2['status'] <=> v1['status']
-    end
-
-    kiriban.each do |k|
-      if rt_count >= k['count']
-        if rdb.rt[record[:id]].nil? || rdb.rt[record[:id]][:rt_status] <= k['status'] - 1
-          twitstring = "#{k['head']} #{record[:status]} #{k['foot']}"
-          rdb.rt[record[:id]][:rt_status] = k['status']
-        end
-        break
-      end
-    end
-
-    unless twitstring.nil?
-      blog_title = /#{config['basic']['title']}/
-      #puts twitstring.sub( blog_title, "")
-      twitresult = access_token.post(
-        'https://api.twitter.com/1.1/statuses/update.json',
-        status: twitstring.sub(blog_title, '')
-      )
-      puts twitresult.body
-    end
+  unless twitstring.nil?
+    blog_title = /#{config['basic']['title']}/
+    twitresult = access_token.post(
+      'https://api.twitter.com/1.1/statuses/update.json',
+      status: twitstring.sub(blog_title, '')
+    )
+    puts twitresult.body
   end
 end
 
