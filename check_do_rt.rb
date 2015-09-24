@@ -129,6 +129,8 @@ tdb.records.each do |record|
   begin
     Net::HTTP.version_1_2   # おまじない
     Net::HTTP.start('cdn.api.twitter.com', 443, use_ssl: true) do |http|
+      http.open_timeout = 3
+      http.read_timeout = 3
       response = get_response(http, urlstr)
     end
   rescue => evar
