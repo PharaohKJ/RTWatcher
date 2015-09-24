@@ -128,9 +128,11 @@ tdb.records.each do |record|
   retry_count = 5
   begin
     Net::HTTP.version_1_2   # おまじない
-    Net::HTTP.start('cdn.api.twitter.com', 443, use_ssl: true) do |http|
-      http.open_timeout = 3
-      http.read_timeout = 3
+    http = Net::HTTP.new('cdn.api.twitter.com', 443)
+    http.use_ssl = true
+    http.open_timeout = 3
+    http.read_timeout = 3
+    http.start do
       response = get_response(http, urlstr)
     end
   rescue => evar
