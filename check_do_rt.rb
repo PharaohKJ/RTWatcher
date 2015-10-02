@@ -103,6 +103,12 @@ tdb.records.each do |record|
   if urlstrs.length == 0
     urlstrs = record[:status].scan(%r{http://t.co/[a-zA-Z0-9]+})
   end
+  if urlstrs.length == 0
+    urlstrs = record[:status].scan(%r{https://lb.to/[a-zA-Z0-9]+})
+  end
+  if urlstrs.length == 0
+    urlstrs = record[:status].scan(%r{https://t.co/[a-zA-Z0-9]+})
+  end
 
   # URLが抜き出せなかったら無視
   if urlstrs.length == 0
