@@ -12,3 +12,6 @@ run:
 debug:
 	ruby get_tweet.rb $(TEST_USER)
 	ruby check_do_rt.rb $(TEST_USER)
+
+docker_build:
+        docker build -t rtwatcher --no-cache ./
