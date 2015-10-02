@@ -15,3 +15,4 @@ debug:
 
 docker_build:
         docker build -t rtwatcher --no-cache ./
+
