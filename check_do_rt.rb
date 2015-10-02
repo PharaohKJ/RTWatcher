@@ -51,6 +51,7 @@ def expand_url(url)
   rescue Timeout::Error => ex
     retry
   end
+  expand_url(out) if out != url
   out
 end
 
@@ -120,10 +121,9 @@ tdb.records.each do |record|
 
   # 短縮URL伸張
   targeturl = expand_url(urlstrs[0])
-  expanded = targeturl.scan(%r{http://lb.to/[a-zA-Z0-9]+})
-  if (expanded.length != 0)
-    targeturl = expand_url(expanded[0])
-  end
+  # puts "expand #{urlstrs[0]} => #{targeturl}"
+
+  next if targeturl.to_s.length == 0
 
   # tweet数取得API準備
   urlstr = '/1/urls/count.json?url=' + URI.encode(targeturl)
@@ -136,8 +136,8 @@ tdb.records.each do |record|
     Net::HTTP.version_1_2   # おまじない
     http = Net::HTTP.new('cdn.api.twitter.com', 443)
     http.use_ssl = true
-    http.open_timeout = 3
-    http.read_timeout = 3
+    http.open_timeout = 2
+    http.read_timeout = 2
     http.start do
       response = get_response(http, urlstr)
     end
