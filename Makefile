@@ -1,4 +1,3 @@
-
 help:
 	grep '^##' Makefile
 
@@ -14,5 +13,4 @@ debug:
 	ruby check_do_rt.rb $(TEST_USER)
 
 docker_build:
-        docker build -t rtwatcher --no-cache ./
-
+	docker build -t rtwatcher --no-cache ./
