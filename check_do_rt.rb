@@ -52,6 +52,7 @@ def expand_url(url)
     p ex, url, uri, uri.host, uri.port, out
     if ex.to_s == 'Connection reset by peer'
       retry_count -= 1
+      sleep 0.5 if retry_count != 0
       retry if retry_count != 0
     else
       puts ex.backtrace
@@ -62,6 +63,7 @@ def expand_url(url)
     retry_count -= 1
     retry if retry_count != 0
   end
+  puts "out = #{out}, url = #{url}"
   expand_url(out) if out.to_s != url.to_s
   out
 end
