@@ -39,9 +39,9 @@ TWEET_DB = "#{db_dir}tweetdb_#{userconf}.txt"
 RT_DB = "#{db_dir}rtdb_#{userconf}.txt"
 
 def expand_url(url)
-  uri = url.is_a?(URI) ? url : URI.parse(url)
   out = ''
   begin
+    uri = url.is_a?(URI) ? url : URI.parse(url)
     Net::HTTP.start(uri.host, uri.port) do |io|
       r = io.head(uri.path)
       out = r['Location'] || uri.to_s
