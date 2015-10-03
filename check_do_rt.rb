@@ -39,7 +39,7 @@ TWEET_DB = "#{db_dir}tweetdb_#{userconf}.txt"
 RT_DB = "#{db_dir}rtdb_#{userconf}.txt"
 
 def expand_url(url)
-  out = ''
+  out = url
   retry_count = 5
   begin
     uri = url.is_a?(URI) ? url : URI.parse(url)
@@ -63,7 +63,7 @@ def expand_url(url)
     retry_count -= 1
     retry if retry_count != 0
   end
-  puts "out = #{out}, url = #{url}"
+  # puts "out = #{out}, url = #{url}"
   expand_url(out) if out.to_s != url.to_s
   out
 end
