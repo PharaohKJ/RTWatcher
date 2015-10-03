@@ -43,10 +43,11 @@ def expand_url(url)
   retry_count = 5
   begin
     uri = url.is_a?(URI) ? url : URI.parse(url)
-    Net::HTTP.start(uri.host, uri.port) do |io|
-      io.use_ssl = true if uri.port == 443
+    io = Net::HTTP.new(uri.host, uri.port)
+    io.use_ssl = true if uri.port == 443
+    io.start do
       r = io.head(uri.path)
-      out = r['Location'] || uri.to_s
+      out = r['Location'] || url
     end
   rescue => ex
     puts "url expand error! ex => #{ex}"
