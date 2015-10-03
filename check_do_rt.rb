@@ -40,6 +40,7 @@ RT_DB = "#{db_dir}rtdb_#{userconf}.txt"
 
 def expand_url(url)
   out = ''
+  retry_count = 5
   begin
     uri = url.is_a?(URI) ? url : URI.parse(url)
     Net::HTTP.start(uri.host, uri.port) do |io|
@@ -48,9 +49,16 @@ def expand_url(url)
     end
   rescue => ex
     puts "url expand error! ex => #{ex}"
-    p ex, uri, out
+    p ex, url, uri, out
+    if ex.to_s == 'Connection reset by peer'
+      retry_count -= 1
+      retry if retry_count != 0
+    end
   rescue Timeout::Error => ex
-    retry
+    puts "Timeout::Error ex => #{ex}"
+    p ex, url, uri, out
+    retry_count -= 1
+    retry if retry_count != 0
   end
   expand_url(out) if out.to_s != url.to_s
   out
