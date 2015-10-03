@@ -49,14 +49,16 @@ def expand_url(url)
     end
   rescue => ex
     puts "url expand error! ex => #{ex}"
-    p ex, url, uri, out
+    p ex, url, uri, uri.host, uri.port, out
     if ex.to_s == 'Connection reset by peer'
       retry_count -= 1
       retry if retry_count != 0
+    else
+      puts ex.backtrace
     end
   rescue Timeout::Error => ex
     puts "Timeout::Error ex => #{ex}"
-    p ex, url, uri, out
+    p ex, url, uri, uri.host, uri.port, out
     retry_count -= 1
     retry if retry_count != 0
   end
