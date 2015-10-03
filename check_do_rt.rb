@@ -44,6 +44,7 @@ def expand_url(url)
   begin
     uri = url.is_a?(URI) ? url : URI.parse(url)
     Net::HTTP.start(uri.host, uri.port) do |io|
+      io.use_ssl = true if uri.port == 443
       r = io.head(uri.path)
       out = r['Location'] || uri.to_s
     end
