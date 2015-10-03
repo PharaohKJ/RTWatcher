@@ -47,11 +47,12 @@ def expand_url(url)
       out = r['Location'] || uri.to_s
     end
   rescue => ex
-    puts ex.to_s
+    puts "url expand error! ex => #{ex}"
+    p ex, uri, out
   rescue Timeout::Error => ex
     retry
   end
-  expand_url(out) if out != url
+  expand_url(out) if out.to_s != url.to_s
   out
 end
 
